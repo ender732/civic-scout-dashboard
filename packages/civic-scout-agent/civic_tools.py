@@ -321,36 +321,58 @@ def analyze_event_with_gemini(
 
 
 def _default_analysis(event_id: str, title: str) -> GeminiAnalysisOutput:
-    """Fallback analysis when Gemini is unavailable."""
-    # Simple keyword-based topic classification
+    """
+    Enhanced fallback analysis when Gemini is unavailable.
+    Provides contextual summaries based on committee type.
+    """
     title_lower = title.lower()
     
-    if any(word in title_lower for word in ['zoning', 'housing', 'land use', 'development']):
+    # Enhanced keyword-based classification with contextual summaries
+    if any(word in title_lower for word in ['zoning', 'housing', 'land use', 'development', 'affordable']):
         topic = "Zoning/Housing"
-        score = 3
+        score = 4
+        summary = "This hearing will discuss zoning changes and housing development that could affect rent prices, building permits, and neighborhood character in your community."
     elif any(word in title_lower for word in ['budget', 'appropriation', 'tax', 'finance']):
         topic = "Budget/Finance"
-        score = 3
+        score = 4
+        summary = "Budget decisions made here directly impact funding for schools, parks, sanitation, and other essential services in your neighborhood."
     elif any(word in title_lower for word in ['school', 'education', 'student']):
         topic = "Education"
-        score = 3
+        score = 4
+        summary = "This meeting addresses school policies, funding, and programs that affect students and families throughout NYC public schools."
     elif any(word in title_lower for word in ['police', 'safety', 'fire', 'emergency']):
         topic = "Public Safety"
-        score = 2
+        score = 3
+        summary = "Public safety policies discussed here may change how police and emergency services operate in your neighborhood."
     elif any(word in title_lower for word in ['transit', 'transportation', 'mta', 'traffic']):
         topic = "Transportation"
-        score = 2
-    elif any(word in title_lower for word in ['health', 'hospital', 'social service']):
-        topic = "Health/Social Services"
         score = 3
+        summary = "Transportation decisions here could affect subway service, bus routes, bike lanes, and street safety in your area."
+    elif any(word in title_lower for word in ['health', 'hospital', 'social service', 'mental health', 'disabilities', 'addiction']):
+        topic = "Health/Social Services"
+        score = 4
+        summary = "This committee discusses healthcare access, mental health services, and social programs that support vulnerable New Yorkers."
+    elif any(word in title_lower for word in ['immigration', 'immigrant']):
+        topic = "Legislation/Policy"
+        score = 4
+        summary = "Immigration policy decisions here affect services, protections, and resources available to immigrant communities across NYC."
+    elif any(word in title_lower for word in ['parks', 'recreation']):
+        topic = "Legislation/Policy"
+        score = 3
+        summary = "Parks committee decisions impact green space maintenance, recreation programs, and public facilities in your neighborhood."
+    elif any(word in title_lower for word in ['veterans']):
+        topic = "Legislation/Policy"
+        score = 3
+        summary = "This meeting addresses services, benefits, and support programs specifically for NYC's veteran community."
     else:
         topic = "Legislation/Policy"
         score = 2
+        summary = "This council meeting will discuss citywide policies and legislation that may have broad impacts on NYC residents."
     
     return GeminiAnalysisOutput(
         event_id=event_id,
         impact_score=score,
-        community_impact_summary=f"This {topic.lower()} meeting may affect local residents. Check the agenda for specific details.",
+        community_impact_summary=summary,
         topic=topic
     )
 
