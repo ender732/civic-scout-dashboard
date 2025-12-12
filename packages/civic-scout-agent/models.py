@@ -72,6 +72,10 @@ class CivicEvent(BaseModel):
         default=None,
         description="Longitude coordinate from geocoding"
     )
+    borough: Optional[str] = Field(
+        default=None,
+        description="NYC Borough (Manhattan, Brooklyn, Queens, Bronx, Staten Island)"
+    )
 
 
 class LegistarEvent(BaseModel):

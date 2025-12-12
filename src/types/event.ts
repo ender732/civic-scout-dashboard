@@ -9,6 +9,7 @@ export interface CivicEvent {
   impact_score: number;
   latitude?: number | null;
   longitude?: number | null;
+  borough?: Borough | null;
 }
 
 export type EventTopic = 

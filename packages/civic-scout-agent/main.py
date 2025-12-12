@@ -108,17 +108,10 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configure CORS for frontend access
+# Configure CORS for frontend access - allow all origins in development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "https://*.vercel.app",
-        "https://*.netlify.app"
-    ],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

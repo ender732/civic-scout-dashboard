@@ -58,13 +58,17 @@ export default function Index() {
   // Filter events based on selected criteria
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
+      // Topic filtering
       if (selectedTopics.length > 0 && !selectedTopics.includes(event.topic)) {
         return false;
       }
-      // Borough filtering would work with actual location data
+      // Borough filtering
+      if (selectedBoroughs.length > 0 && event.borough && !selectedBoroughs.includes(event.borough)) {
+        return false;
+      }
       return true;
     });
-  }, [selectedTopics, events]);
+  }, [selectedTopics, selectedBoroughs, events]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

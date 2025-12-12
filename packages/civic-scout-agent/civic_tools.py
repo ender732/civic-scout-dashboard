@@ -185,7 +185,62 @@ def get_legistar_events(days_ahead: int = 30, filter_keywords: bool = True) -> L
 # Tool 2: GEOLOCATION TOOL - Google Maps Geocoding
 # =============================================================================
 
-def geocode_address(address: str) -> Tuple[Optional[float], Optional[float]]:
+def get_borough_from_coordinates(lat: float, lng: float) -> Optional[str]:
+    """
+    Determine NYC borough from latitude/longitude coordinates.
+    Uses approximate bounding boxes for each borough.
+    
+    Returns:
+        Borough name or None if outside NYC
+    """
+    # Approximate bounding boxes for NYC boroughs
+    # These are rough estimates and may have edge case inaccuracies
+    boroughs = {
+        "Manhattan": {"lat_min": 40.700, "lat_max": 40.882, "lng_min": -74.020, "lng_max": -73.907},
+        "Brooklyn": {"lat_min": 40.570, "lat_max": 40.739, "lng_min": -74.042, "lng_max": -73.833},
+        "Queens": {"lat_min": 40.541, "lat_max": 40.812, "lng_min": -73.962, "lng_max": -73.700},
+        "Bronx": {"lat_min": 40.785, "lat_max": 40.917, "lng_min": -73.933, "lng_max": -73.765},
+        "Staten Island": {"lat_min": 40.496, "lat_max": 40.651, "lng_min": -74.259, "lng_max": -74.052},
+    }
+    
+    for borough, bounds in boroughs.items():
+        if (bounds["lat_min"] <= lat <= bounds["lat_max"] and
+            bounds["lng_min"] <= lng <= bounds["lng_max"]):
+            return borough
+    
+    # Default to Manhattan for City Hall area addresses
+    if 40.71 <= lat <= 40.72 and -74.01 <= lng <= -74.00:
+        return "Manhattan"
+    
+    return None
+
+
+def get_borough_from_address(address: str) -> Optional[str]:
+    """
+    Try to extract borough from address string.
+    """
+    address_lower = address.lower()
+    
+    # Check for explicit borough mentions
+    if "manhattan" in address_lower or "new york, ny 100" in address_lower:
+        return "Manhattan"
+    if "brooklyn" in address_lower or "new york, ny 112" in address_lower:
+        return "Brooklyn"
+    if "queens" in address_lower or "new york, ny 11" in address_lower:
+        return "Queens"
+    if "bronx" in address_lower or "new york, ny 104" in address_lower:
+        return "Bronx"
+    if "staten island" in address_lower or "new york, ny 103" in address_lower:
+        return "Staten Island"
+    
+    # City Hall and 250 Broadway are in Manhattan
+    if "city hall" in address_lower or "250 broadway" in address_lower:
+        return "Manhattan"
+    
+    return None
+
+
+def geocode_address(address: str) -> Tuple[Optional[float], Optional[float], Optional[str]]:
     """
     GEOLOCATION TOOL: Convert an address string to latitude/longitude coordinates.
     
@@ -198,16 +253,19 @@ def geocode_address(address: str) -> Tuple[Optional[float], Optional[float]]:
         address: The address string to geocode
     
     Returns:
-        Tuple of (latitude, longitude) or (None, None) if geocoding fails
+        Tuple of (latitude, longitude, borough) or (None, None, None) if geocoding fails
     """
     if not address or not address.strip():
         logger.warning("Empty address provided for geocoding")
-        return (None, None)
+        return (None, None, None)
+    
+    # Try to get borough from address text first
+    borough_from_text = get_borough_from_address(address)
     
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
     if not api_key:
         logger.warning("GOOGLE_MAPS_API_KEY not set, skipping geocoding")
-        return (None, None)
+        return (None, None, borough_from_text)
     
     try:
         gmaps = googlemaps.Client(key=api_key)
@@ -221,17 +279,21 @@ def geocode_address(address: str) -> Tuple[Optional[float], Optional[float]]:
             location = geocode_result[0]['geometry']['location']
             lat, lng = location['lat'], location['lng']
             logger.debug(f"Geocoded '{address}' to ({lat}, {lng})")
-            return (lat, lng)
+            
+            # Determine borough from coordinates or fall back to address text
+            borough = get_borough_from_coordinates(lat, lng) or borough_from_text
+            
+            return (lat, lng, borough)
         else:
             logger.warning(f"No geocoding results for address: {address}")
-            return (None, None)
+            return (None, None, borough_from_text)
             
     except googlemaps.exceptions.ApiError as e:
         logger.error(f"Google Maps API error: {e}")
-        return (None, None)
+        return (None, None, borough_from_text)
     except Exception as e:
         logger.error(f"Unexpected geocoding error: {e}")
-        return (None, None)
+        return (None, None, borough_from_text)
 
 
 # =============================================================================
@@ -453,7 +515,7 @@ async def analyze_pdf_agenda(pdf_url: str, event_id: str) -> Optional[str]:
 def transform_legistar_to_civic_event(
     raw_event: Dict[str, Any],
     analysis: GeminiAnalysisOutput,
-    coordinates: Tuple[Optional[float], Optional[float]]
+    coordinates: Tuple[Optional[float], Optional[float], Optional[str]]
 ) -> CivicEvent:
     """
     Transform raw Legistar event data into a CivicEvent model.
@@ -461,7 +523,7 @@ def transform_legistar_to_civic_event(
     Args:
         raw_event: Raw event dictionary from Legistar API
         analysis: Gemini analysis output
-        coordinates: Tuple of (latitude, longitude)
+        coordinates: Tuple of (latitude, longitude, borough)
     
     Returns:
         Fully populated CivicEvent model
@@ -498,5 +560,6 @@ def transform_legistar_to_civic_event(
         impact_score=analysis.impact_score,
         community_impact_summary=analysis.community_impact_summary,
         latitude=coordinates[0],
-        longitude=coordinates[1]
+        longitude=coordinates[1],
+        borough=coordinates[2]
     )

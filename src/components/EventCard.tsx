@@ -21,16 +21,25 @@ const topicStyles: Record<string, { bg: string; text: string }> = {
 };
 
 function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  }) + ", " + date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+  // Handle format like "2025-12-12T10:00 AM"
+  try {
+    // Split the date and time parts
+    const [datePart, timePart] = dateString.split('T');
+    if (!datePart) return dateString;
+    
+    const [year, month, day] = datePart.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const dayName = dayNames[dateObj.getDay()];
+    const monthName = monthNames[parseInt(month) - 1];
+    
+    const timeStr = timePart || '';
+    return `${dayName}, ${monthName} ${parseInt(day)}, ${timeStr}`;
+  } catch {
+    return dateString;
+  }
 }
 
 function isHighImpact(impactScore: number, summary: string): boolean {
