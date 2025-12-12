@@ -6,6 +6,10 @@ export interface CivicEvent {
   location: string;
   topic: EventTopic;
   link: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export type EventTopic = 
