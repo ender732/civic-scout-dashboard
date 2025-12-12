@@ -21,11 +21,13 @@ const boroughs: Borough[] = [
 ];
 
 const topics: { value: EventTopic; label: string; colorClass: string }[] = [
-  { value: "Zoning/Housing", label: "Zoning/Housing", colorClass: "bg-topic-zoning" },
-  { value: "Schools/Education", label: "Schools/Education", colorClass: "bg-topic-schools" },
-  { value: "Budget/Finance", label: "Budget/Finance", colorClass: "bg-topic-budget" },
-  { value: "Transit/Infrastructure", label: "Transit/Infrastructure", colorClass: "bg-topic-transit" },
-  { value: "Public Safety", label: "Public Safety", colorClass: "bg-topic-safety" },
+  { value: "Zoning/Housing", label: "Zoning/Housing", colorClass: "bg-orange-500" },
+  { value: "Education", label: "Education", colorClass: "bg-blue-500" },
+  { value: "Budget/Finance", label: "Budget/Finance", colorClass: "bg-green-500" },
+  { value: "Transportation", label: "Transportation", colorClass: "bg-purple-500" },
+  { value: "Public Safety", label: "Public Safety", colorClass: "bg-red-500" },
+  { value: "Health/Social Services", label: "Health/Social Services", colorClass: "bg-pink-500" },
+  { value: "Legislation/Policy", label: "Legislation/Policy", colorClass: "bg-slate-500" },
 ];
 
 export function EventFilters({

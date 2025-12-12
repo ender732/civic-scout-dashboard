@@ -1,23 +1,25 @@
 export interface CivicEvent {
-  id: number;
+  id: string;
   title: string;
-  impact_summary: string;
+  community_impact_summary: string;
   date_time: string;
   location: string;
   topic: EventTopic;
   link: string;
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
+  impact_score: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export type EventTopic = 
   | "Zoning/Housing" 
-  | "Schools/Education" 
+  | "Education" 
   | "Budget/Finance" 
-  | "Transit/Infrastructure" 
+  | "Transportation" 
   | "Public Safety"
+  | "Health/Social Services"
+  | "Legislation/Policy"
+  | "Environment"
   | "Other";
 
 export type Borough = "Manhattan" | "Brooklyn" | "Queens" | "Bronx" | "Staten Island";
