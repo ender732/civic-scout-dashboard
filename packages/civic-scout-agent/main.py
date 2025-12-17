@@ -157,8 +157,7 @@ async def run_civic_scout_pipeline(
         raw_events = []
     
     if not raw_events:
-        logger.warning("No events retrieved from Legistar, using sample data")
-        raw_events = _get_sample_events()
+        logger.warning("No events retrieved from Legistar - check API credentials")
     
     logger.info(f"Processing {len(raw_events)} events through analysis pipeline")
     
@@ -222,76 +221,6 @@ async def run_civic_scout_pipeline(
     logger.info(f"Pipeline complete: {len(processed_events)} events processed")
     return processed_events
 
-
-def _get_sample_events() -> List[dict]:
-    """
-    Fallback sample events when Legistar API is unavailable.
-    These represent typical NYC civic events for demonstration.
-    """
-    base_date = datetime.now()
-    
-    return [
-        {
-            "EventId": 10001,
-            "EventBodyName": "Committee on Housing and Buildings - Zoning Amendment Hearing",
-            "EventDate": (base_date.replace(day=base_date.day + 3)).isoformat(),
-            "EventTime": "10:00 AM",
-            "EventLocation": "City Hall, Committee Room, New York, NY 10007",
-            "EventInSiteURL": "https://legistar.council.nyc.gov/Calendar.aspx",
-            "EventAgendaFile": None,
-            "EventComment": "Public hearing on proposed zoning changes in Brooklyn"
-        },
-        {
-            "EventId": 10002,
-            "EventBodyName": "Committee on Education - School Budget Review",
-            "EventDate": (base_date.replace(day=base_date.day + 5)).isoformat(),
-            "EventTime": "2:00 PM",
-            "EventLocation": "250 Broadway, 14th Floor, New York, NY 10007",
-            "EventInSiteURL": "https://legistar.council.nyc.gov/Calendar.aspx",
-            "EventAgendaFile": None,
-            "EventComment": "Review of proposed budget cuts to after-school programs"
-        },
-        {
-            "EventId": 10003,
-            "EventBodyName": "Committee on Transportation - Transit Access Hearing",
-            "EventDate": (base_date.replace(day=base_date.day + 7)).isoformat(),
-            "EventTime": "11:00 AM",
-            "EventLocation": "City Hall, Council Chambers, New York, NY 10007",
-            "EventInSiteURL": "https://legistar.council.nyc.gov/Calendar.aspx",
-            "EventAgendaFile": None,
-            "EventComment": "Discussion on improving transit access in underserved areas"
-        },
-        {
-            "EventId": 10004,
-            "EventBodyName": "Committee on Public Safety - Community Policing Review",
-            "EventDate": (base_date.replace(day=base_date.day + 8)).isoformat(),
-            "EventTime": "3:00 PM",
-            "EventLocation": "Bronx Borough Hall, 851 Grand Concourse, Bronx, NY 10451",
-            "EventInSiteURL": "https://legistar.council.nyc.gov/Calendar.aspx",
-            "EventAgendaFile": None,
-            "EventComment": "Review of community policing initiatives"
-        },
-        {
-            "EventId": 10005,
-            "EventBodyName": "Committee on Finance - Budget Appropriations Hearing",
-            "EventDate": (base_date.replace(day=base_date.day + 10)).isoformat(),
-            "EventTime": "10:00 AM",
-            "EventLocation": "City Hall, Council Chambers, New York, NY 10007",
-            "EventInSiteURL": "https://legistar.council.nyc.gov/Calendar.aspx",
-            "EventAgendaFile": None,
-            "EventComment": "Final hearing on FY2026 budget appropriations"
-        },
-        {
-            "EventId": 10006,
-            "EventBodyName": "Committee on Land Use - Affordable Housing Development",
-            "EventDate": (base_date.replace(day=base_date.day + 12)).isoformat(),
-            "EventTime": "1:00 PM",
-            "EventLocation": "Queens Borough Hall, 120-55 Queens Blvd, Kew Gardens, NY 11424",
-            "EventInSiteURL": "https://legistar.council.nyc.gov/Calendar.aspx",
-            "EventAgendaFile": None,
-            "EventComment": "Review of proposed affordable housing development in Queens"
-        }
-    ]
 
 
 # =============================================================================
