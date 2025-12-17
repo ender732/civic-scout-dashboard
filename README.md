@@ -1,8 +1,8 @@
-# Welcome to your Lovable project
+# NYC Civic Scout Dashboard
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Description**: Track NYC civic events and government meetings with AI-powered impact analysis
 
 ## How can I edit this code?
 
