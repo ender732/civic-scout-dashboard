@@ -8,37 +8,50 @@ interface EventCardProps {
   index: number;
 }
 
-const topicStyles: Record<EventTopic, { bg: string; text: string }> = {
-  "Zoning/Housing": { bg: "bg-topic-zoning/15", text: "text-topic-zoning" },
-  "Schools/Education": { bg: "bg-topic-schools/15", text: "text-topic-schools" },
-  "Budget/Finance": { bg: "bg-topic-budget/15", text: "text-topic-budget" },
-  "Transit/Infrastructure": { bg: "bg-topic-transit/15", text: "text-topic-transit" },
-  "Public Safety": { bg: "bg-topic-safety/15", text: "text-topic-safety" },
-  "Other": { bg: "bg-topic-default/15", text: "text-topic-default" },
+const topicStyles: Record<string, { bg: string; text: string }> = {
+  "Zoning/Housing": { bg: "bg-orange-500/15", text: "text-orange-600" },
+  "Education": { bg: "bg-blue-500/15", text: "text-blue-600" },
+  "Budget/Finance": { bg: "bg-green-500/15", text: "text-green-600" },
+  "Transportation": { bg: "bg-purple-500/15", text: "text-purple-600" },
+  "Public Safety": { bg: "bg-red-500/15", text: "text-red-600" },
+  "Health/Social Services": { bg: "bg-pink-500/15", text: "text-pink-600" },
+  "Legislation/Policy": { bg: "bg-slate-500/15", text: "text-slate-600" },
+  "Environment": { bg: "bg-emerald-500/15", text: "text-emerald-600" },
+  "Other": { bg: "bg-gray-500/15", text: "text-gray-600" },
 };
 
 function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  }) + ", " + date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+  // Handle format like "2025-12-12T10:00 AM"
+  try {
+    // Split the date and time parts
+    const [datePart, timePart] = dateString.split('T');
+    if (!datePart) return dateString;
+    
+    const [year, month, day] = datePart.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const dayName = dayNames[dateObj.getDay()];
+    const monthName = monthNames[parseInt(month) - 1];
+    
+    const timeStr = timePart || '';
+    return `${dayName}, ${monthName} ${parseInt(day)}, ${timeStr}`;
+  } catch {
+    return dateString;
+  }
 }
 
-function isUrgent(impactSummary: string): boolean {
-  const urgentKeywords = ["crucial", "urgent", "critical", "eliminate", "cut"];
+function isHighImpact(impactScore: number, summary: string): boolean {
+  if (impactScore >= 4) return true;
+  const urgentKeywords = ["crucial", "urgent", "critical", "vulnerable", "underserved"];
   return urgentKeywords.some(keyword => 
-    impactSummary.toLowerCase().includes(keyword)
+    summary.toLowerCase().includes(keyword)
   );
 }
 
 export function EventCard({ event, index }: EventCardProps) {
-  const urgent = isUrgent(event.impact_summary);
+  const urgent = isHighImpact(event.impact_score, event.community_impact_summary);
   const topicStyle = topicStyles[event.topic] || topicStyles["Other"];
 
   return (
@@ -79,10 +92,18 @@ export function EventCard({ event, index }: EventCardProps) {
         {/* Impact Summary */}
         <p className="mb-4 flex-1 text-sm leading-relaxed text-muted-foreground">
           <strong className="font-semibold text-foreground">
-            {event.impact_summary.split(".")[0]}.
+            {event.community_impact_summary.split(".")[0]}.
           </strong>{" "}
-          {event.impact_summary.split(".").slice(1).join(".").trim()}
+          {event.community_impact_summary.split(".").slice(1).join(".").trim()}
         </p>
+
+        {/* Impact Score */}
+        <div className="mb-3 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">Impact:</span>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span key={star} className={star <= event.impact_score ? "text-yellow-500" : "text-gray-300"}>★</span>
+          ))}
+        </div>
 
         {/* Meta Info */}
         <div className="space-y-2 text-sm text-muted-foreground">
