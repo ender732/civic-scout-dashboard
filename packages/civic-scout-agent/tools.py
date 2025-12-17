@@ -171,83 +171,9 @@ def get_nyc_council_events(days_ahead: int = 7, borough: str = None) -> list:
             return scraped_events
     
     except Exception as e:
-        print(f"❌ Scraping failed: {e}. Using sample data.")
+        print(f"❌ Scraping failed: {e}")
     
-    # Fallback to sample data
-    sample_events = [
-        {
-            "id": 12345,
-            "title": "Public Hearing: Zoning Change, CB4",
-            "impact_summary": "",  # Will be filled by AI
-            "date_time": "2025-12-20T18:00:00Z",
-            "location": "Bronx County Hall, Room 101",
-            "topic": "Zoning/Housing",
-            "link": "https://council.nyc.gov/calendar/",
-        },
-        {
-            "id": 12346,
-            "title": "School Budget Review Meeting",
-            "impact_summary": "",
-            "date_time": "2025-12-18T17:30:00Z",
-            "location": "Queens Borough Hall, Conference Room A",
-            "topic": "Schools/Education",
-            "link": "https://council.nyc.gov/calendar/",
-        },
-        {
-            "id": 12347,
-            "title": "Transit Infrastructure Planning Session",
-            "impact_summary": "",
-            "date_time": "2025-12-22T14:00:00Z",
-            "location": "Brooklyn Municipal Building, Room 305",
-            "topic": "Transit/Infrastructure",
-            "link": "https://council.nyc.gov/calendar/",
-        },
-        {
-            "id": 12348,
-            "title": "Community Safety Forum",
-            "impact_summary": "",
-            "date_time": "2025-12-19T19:00:00Z",
-            "location": "Manhattan Community Center, Main Hall",
-            "topic": "Public Safety",
-            "link": "https://council.nyc.gov/calendar/",
-        },
-        {
-            "id": 12349,
-            "title": "Annual Budget Hearing - Parks Department",
-            "impact_summary": "",
-            "date_time": "2025-12-23T10:00:00Z",
-            "location": "City Hall, Council Chambers",
-            "topic": "Budget/Finance",
-            "link": "https://council.nyc.gov/calendar/",
-        },
-        {
-            "id": 12350,
-            "title": "Affordable Housing Development Review",
-            "impact_summary": "",
-            "date_time": "2025-12-24T16:00:00Z",
-            "location": "Staten Island Borough Hall, Room 201",
-            "topic": "Zoning/Housing",
-            "link": "https://council.nyc.gov/calendar/",
-        },
-    ]
-    
-    # Filter by date
-    now = datetime.now().replace(tzinfo=timezone.utc)
-    future_events = []
-    for event in sample_events:
-        event_date = datetime.fromisoformat(event["date_time"].replace('Z', '+00:00'))
-        if event_date >= now and (event_date - now).days <= days_ahead:
-            future_events.append(event)
-    
-    # Filter by borough if specified
-    if borough:
-        borough_locations = {
-            "Bronx": "Bronx",
-            "Brooklyn": "Brooklyn",
-            "Manhattan": "Manhattan",
-            "Queens": "Queens",
-            "Staten Island": "Staten Island"
-        }
+    return []
         if borough in borough_locations:
             future_events = [e for e in future_events if borough_locations[borough].lower() in e["location"].lower()]
     
