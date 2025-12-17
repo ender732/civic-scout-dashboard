@@ -11,6 +11,7 @@ These tools represent the agent's available actions:
 import os
 import json
 import logging
+import hashlib
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple, Any
 
@@ -21,6 +22,7 @@ import google.generativeai as genai
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from models import LegistarEvent, GeminiAnalysisOutput, CivicEvent
+from AsyncClient import CivicAsyncClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -563,3 +565,201 @@ def transform_legistar_to_civic_event(
         longitude=coordinates[1],
         borough=coordinates[2]
     )
+
+
+# =============================================================================
+# Tool 5: Socrata Parks Events Fetcher (Async with SoQL support)
+# =============================================================================
+
+async def get_socrata_dataset_async(
+    dataset_id: str,
+    soql: Optional[str] = None,
+    app_token: Optional[str] = None,
+    limit: int = 1000,
+    max_pages: Optional[int] = None
+) -> List[Dict[str, Any]]:
+    """
+    Async fetch for a Socrata dataset using CivicAsyncClient.
+    
+    Args:
+        dataset_id: Socrata resource ID (e.g., "ebds-hqr2")
+        soql: Optional SoQL query for server-side filtering
+        app_token: Optional app token (uses NYC_OPEN_DATA_TOKEN env var if not provided)
+        limit: Page size for pagination (default: 1000)
+        max_pages: Max pages to fetch (prevents runaway requests)
+    
+    Returns:
+        List of raw records from the dataset
+    """
+    base_url = os.getenv("SOCRATA_BASE_URL", "https://data.cityofnewyork.us/resource/")
+    async with CivicAsyncClient(base_url=base_url) as client:
+        results = await client.fetch_socrata_paginated(
+            resource=dataset_id,
+            soql=soql,
+            app_token=app_token or os.getenv("NYC_OPEN_DATA_TOKEN"),
+            limit=limit,
+            max_pages=max_pages
+        )
+        return results or []
+
+
+async def transform_socrata_to_civic_event(raw: Dict[str, Any]) -> CivicEvent:
+    """
+    Convert a Socrata record to CivicEvent.
+    
+    Uses heuristic field mapping for common Socrata schemas.
+    Performs geocoding and AI analysis using existing tools.
+    
+    Args:
+        raw: Raw Socrata record dictionary
+    
+    Returns:
+        Transformed CivicEvent object
+    """
+    # Extract fields with fallbacks for common Socrata schemas
+    event_id_raw = (
+        raw.get("objectid") or 
+        raw.get("id") or 
+        raw.get("unique_id") or 
+        raw.get("event_id") or 
+        raw.get("permitnumber") or
+        ""
+    )
+    
+    title = (
+        raw.get("event_name") or 
+        raw.get("eventname") or
+        raw.get("park_name") or 
+        raw.get("title") or 
+        raw.get("name") or 
+        "Community Event"
+    )
+    
+    # Try common date/time fields
+    date_time = (
+        raw.get("start_date") or 
+        raw.get("startdatetime") or 
+        raw.get("start_date_time") or
+        raw.get("date") or 
+        raw.get("event_date") or 
+        datetime.now().isoformat()
+    )
+    
+    location = (
+        raw.get("location_name") or 
+        raw.get("location") or 
+        raw.get("address") or 
+        raw.get("park_address") or
+        raw.get("eventlocation") or
+        "New York, NY"
+    )
+    
+    link = raw.get("url") or raw.get("link") or raw.get("eventurl") or ""
+    
+    description = (
+        raw.get("description") or 
+        raw.get("details") or 
+        raw.get("eventdescription") or 
+        ""
+    )
+    
+    # Generate stable ID using hash if no explicit ID
+    if not event_id_raw:
+        uid_source = f"{title}|{date_time}|{location}"
+        event_id = f"socrata-{hashlib.sha256(uid_source.encode('utf-8')).hexdigest()[:12]}"
+    else:
+        event_id = f"socrata-{event_id_raw}"
+    
+    # Perform analysis using existing Gemini tool
+    analysis = analyze_event_with_gemini(
+        event_id=event_id,
+        title=title,
+        body=description[:200],  # Truncate for context
+        date=str(date_time),
+        location=location,
+        context=description
+    )
+    
+    # Geocode address using existing tool
+    coords = geocode_address(location)
+    
+    return CivicEvent(
+        id=event_id,
+        title=title,
+        date_time=str(date_time),
+        location=location,
+        link=link,
+        topic=analysis.topic,
+        impact_score=analysis.impact_score,
+        community_impact_summary=analysis.community_impact_summary,
+        latitude=coords[0],
+        longitude=coords[1],
+        borough=coords[2]
+    )
+
+
+async def get_socrata_parks_events(
+    days_ahead: int = 30, 
+    limit: int = 200,
+    borough: Optional[str] = None
+) -> List[CivicEvent]:
+    """
+    Fetch parks-related events from NYC Parks Socrata dataset.
+    
+    Uses dataset 'fudw-fgrp' (NYC Parks Public Events).
+    Supports optional borough filtering via SoQL.
+    
+    Args:
+        days_ahead: Number of days ahead to fetch events for
+        limit: Maximum number of records to fetch per page
+        borough: Optional borough filter (e.g., "Manhattan", "Brooklyn")
+    
+    Returns:
+        List of transformed CivicEvent objects
+    """
+    dataset_id = "fudw-fgrp"  # NYC Parks Public Events
+    
+    # Build SoQL query for date filtering
+    today = datetime.now()
+    future_date = today + timedelta(days=days_ahead)
+    
+    # Format dates for SoQL (Socrata uses ISO format)
+    today_str = today.strftime("%Y-%m-%d")
+    future_str = future_date.strftime("%Y-%m-%d")
+    
+    # Build SoQL WHERE clause
+    where_clauses = [f"date >= '{today_str}'", f"date <= '{future_str}'"]
+    
+    if borough:
+        # Add borough filter if specified
+        where_clauses.append(f"borough = '{borough}'")
+    
+    soql = f"SELECT * WHERE {' AND '.join(where_clauses)}"
+    
+    logger.info(f"Fetching Socrata parks events with SoQL: {soql}")
+    
+    try:
+        raw_records = await get_socrata_dataset_async(
+            dataset_id=dataset_id, 
+            soql=soql, 
+            limit=limit
+        )
+        
+        logger.info(f"Retrieved {len(raw_records)} raw records from Socrata parks dataset")
+        
+        civic_events: List[CivicEvent] = []
+        for raw in raw_records:
+            try:
+                civic = await transform_socrata_to_civic_event(raw)
+                civic_events.append(civic)
+            except Exception as e:
+                logger.debug(f"Failed to transform Socrata record: {e}")
+                continue
+        
+        logger.info(f"Transformed {len(civic_events)} Socrata parks events")
+        return civic_events
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch Socrata parks events: {e}")
+        return []
+

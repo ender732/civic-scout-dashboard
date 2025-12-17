@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 from models import CivicEvent, EventsResponse, HealthResponse
 from civic_tools import (
     get_legistar_events,
+    get_socrata_parks_events,
     geocode_address,
     analyze_event_with_gemini,
     analyze_pdf_agenda,
@@ -207,6 +208,16 @@ async def run_civic_scout_pipeline(
         except Exception as e:
             logger.error(f"Failed to process event {event_id}: {e}")
             continue
+    
+    # Step 5: Fetch and integrate Socrata parks events
+    try:
+        logger.info("Fetching Socrata parks events...")
+        socrata_events = await get_socrata_parks_events(days_ahead=days_ahead)
+        if socrata_events:
+            processed_events.extend(socrata_events)
+            logger.info(f"Appended {len(socrata_events)} events from Socrata parks dataset")
+    except Exception as e:
+        logger.warning(f"Failed to fetch or transform Socrata parks events: {e}")
     
     logger.info(f"Pipeline complete: {len(processed_events)} events processed")
     return processed_events
