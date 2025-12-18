@@ -7,6 +7,7 @@ import { EventFilters } from "@/components/EventFilters";
 import { EventCard } from "@/components/EventCard";
 import { Footer } from "@/components/Footer";
 import type { CivicEvent, Borough, EventTopic } from "@/types/event";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Index() {
   const [selectedBoroughs, setSelectedBoroughs] = useState<Borough[]>([]);
@@ -42,14 +43,38 @@ export default function Index() {
   };
 
   // Fetch events from API
+  const { toast } = useToast();
+
   const { data: eventsData, isLoading, error } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
       const response = await fetch('http://localhost:8001/api/events');
       if (!response.ok) {
-        throw new Error('Failed to fetch events');
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to fetch events');
       }
       return response.json();
+    },
+    onSuccess(data) {
+      const count = data?.events?.length ?? 0;
+      if (count === 0) {
+        toast({
+          title: 'No events found',
+          description: 'No upcoming events were returned by the backend.',
+        });
+      } else {
+        toast({
+          title: `${count} events loaded`,
+          description: 'Upcoming civic events fetched successfully.',
+        });
+      }
+    },
+    onError(err: any) {
+      toast({
+        title: 'Failed to load events',
+        description: err?.message ?? 'An unknown error occurred while fetching events.',
+        variant: 'destructive',
+      });
     },
   });
 
